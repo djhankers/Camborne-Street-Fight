@@ -1,0 +1,347 @@
+import random
+import time
+
+# Locations dictionary 
+locations = {
+    "policestation": {
+        "description": "Hello mate, can I get my ID back bro, you say. 'Nah, get me some doughnuts from Lidl's, I'll think about it bro, oh and watch out for the gang.' He responds. You wonder what he was on about with the Gang. (Danger Level - 25%)",
+        "chance": 5,
+        "exits": ["thestreet1"]
+    },
+    "busstop": {
+        "description": "Welcome traveller, to camborne. You arrived late, 8.00PM to be exact, you shanked the bus driver as you get of the bus, he falls to the floor in pain.You see the switchblade you picked up? This will be handy, keep it. But for now, get to wetherspoons, stay lucky traveller - Narrator (Danger Level - 50%) ",
+        "item": "A switchblade",
+        "chance": 0,
+        "exits": ["thestreet1"]
+    },
+    "thestreet1": {
+        "description": "You're by the Bus Stop, the roads are busy, and yet there are still very little people around, weird. You check your pockets, s**t, your ID! You gotta go to the police station to get it back! - Narrator (Danger Level - 40%)",
+        "chance": 10,
+        "exits": ["thestreet2", "busstop", "policestation"]
+    },
+    "thestreet2": {
+        "description": "You wander the empty streets, no civilians in sight, the Lidl is nowhere to be seen, Its starting to get cold too btw. - Narrator (Danger Level - 40%)",
+        "chance": 15,
+        "exits": ["lidlcarpark", "thestreet1", "bank"]
+    },
+    "lidlcarpark": {
+        "description": "You see it! Lidl, you walk towards Lidl, you notice a parked black BMW in the carpark, you think nothing of it, then you get approached from behind, RUN! - Narrator (Danger Level - 85%)",
+        "chance": 0,
+        "exits": ["lidl", "thestreet2"]
+    },
+    "lidl": {
+        "description": "Well Done bro, those gang members are deadly, how did you beat them? Damn. Anyway, Keep your eyes peeled for those doughnuts and get back to the station! - Narrator (Danger Level - 65%)",
+        "item": "Doughnuts",
+        "chance": 10,
+        "exits": ["lidlcarpark"]
+    },
+    "bank": {
+        "description": "The street seems to come to a close, and you think those gang members must be close, so you run into the local bank for safety. Good Choice Bro. - Narrator (Danger Level - 25%)",
+        "chance": 5,
+        "exits": ["thestreet3", "thestreet2"]
+    },
+    "thestreet3": {
+        "description": "You leave the bank, you have lost them. 'Ideal'. You are now in the main street of camborne, you must be close now. - Narrator (Danger Level - 40%)",
+        "exits": ["betfred", "boots", "homelessshelter", "bank"]
+    },
+    "betfred": {
+        "description": "You are walking down the main street of camborne and you see a betfred, this is where you can make some decent monehy, or lose it all. Bet on some of the matches, why wouldn't you come check it out? - Narrator(Danger Level - 15%)",
+        "chance": 0,
+        "exits": ["thestreet3"]
+    },
+    "boots": {
+        "description": "You're in Boots, a pharmacy. You can buy supplies like paracetamol for £2. Decent. - Narrator",
+        "item": "paracetamol",
+        "chance": 0,
+        "exits": ["thestreet3"]
+    },
+    "homelessshelter": {
+        "description": "Now you have done it, you have the dragons den of Camborne, the homeless shelter. Wait, How have yuo pissed them off? Oh boy, here we go... - Narrator (Danger level - 101% !!!)",
+        "item1": "spare change - £2.69",
+        "chance": 0,
+        "exits": ["thestreet3", "thestreet4"]
+    },
+    "thestreet4": {
+        "description": "You made it. I can't believe it, all the obsticals that camborne can throw, Just get to wetherspoons bro. - Narrator (Danger level - 50%)",
+        "chance": 0,
+        "exits": ["thestreet3", "wetherspoonslocked"]
+    },
+    "wetherspoonslocked": {
+        "description": "Your at the door, you hear the rest of your night in that door, you got your ID?",
+        "chance": 0,
+        "exits": ["thestreet4"]
+    },
+    "wetherspoonsunlocked": {
+        "description": "Congrats, you made it. You beat Camborne Piss-Up! (Danger level - 10%)",
+        "chance": 0,
+        "exits": ["thestreet4"]
+    }
+}
+
+# Initialize variables
+item = []
+player_loc = "busstop"
+player_health = 30
+player_money = 50
+player_attack = 10
+enemy_attack = 8  # Increase enemy attack power
+gang_fight_occurred = {}  # Dictionary to track if the gang fight has occurred at each location
+homeless_fight_occurred = False  # Flag to track if the homeless fight has occurred
+
+# Game over function
+def game_over():
+    print("You have been killed, I recommend following the story buddy.")
+    exit()
+
+# Function to allow the player to use items before a fight
+def use_item():
+    global player_health, player_attack
+    if not item:
+        print("You don't have any items to use!")
+        return
+
+    print("You have the following items:")
+    for idx, i in enumerate(item, 1):
+        print(f"{idx}. {i}")
+
+    choice = input("Which item would you like to use? Enter the number or '0' to cancel: ")
+
+    if choice == '0':
+        print("You chose not to use any items.")
+        return
+
+    try:
+        choice = int(choice) - 1
+        selected_item = item[choice]
+
+        if selected_item == "paracetamol":
+            if selected_item in item:
+                item.remove("paracetamol")
+                player_health += 10  # Heal 10 health points
+                print("You used Paracetamol! Your health is now:", player_health)
+
+    
+        elif selected_item == "Doughnuts":
+            if selected_item in item:
+                item.remove("Doughnuts")
+                player_health += 15  # Heal 20 health points
+                print("You ate a Doughnut! Your health is now:", player_health)
+
+        elif selected_item == "A switchblade":
+            if selected_item in item:
+                item.remove("A switchblade")
+                player_attack += 3  # Boost attack power
+                print("You used a Switchblade! Your attack is now:", player_attack)
+
+        else:
+            print("You can't use this item in battle.")
+    except (ValueError, IndexError):
+        print("Invalid choice. Please select a valid item.")
+
+# Fight function for gang members
+def gang_fight(location):
+    global player_health, enemy_health, gang_fight_occurred
+    if gang_fight_occurred.get(location, False):  # Check if the gang fight has already occurred at this location
+        print("You have already fought the gang member here.")
+        return
+
+    enemy_health = 40  # Gang member's health
+    print("A gang member challenges you to a fight!")
+
+    # Use items before the fight
+    use_item()
+
+    while player_health > 0 and enemy_health > 0:
+        print("\nYour Turn:")
+        player_turn()
+        print_status()
+        if enemy_health <= 0:
+            print("\nYou defeated the gang member!")
+            gang_fight_occurred[location] = True  # Set flag to indicate the fight occurred at this location
+            break
+
+        print("\nGang Member's Turn:")
+        enemy_turn()
+        print_status()
+        if player_health <= 0:
+            game_over()
+        time.sleep(1)  # Pause between turns
+
+# Fight function for the homeless man
+def homeless_fight():
+    global player_health, enemy_health, homeless_fight_occurred
+    if homeless_fight_occurred:  # Check if the homeless fight has already occurred
+        print("You have already fought the homeless guy.")
+        return
+
+    enemy_health = 30  # Homeless guy's health
+    print("A homeless guy challenges you to a fight!")
+
+    # Use items before the fight
+    use_item()
+
+    while player_health > 0 and enemy_health > 0:
+        print("\nYour Turn:")
+        player_turn()
+        print_status()
+        if enemy_health <= 0:
+            print("\nYou defeated the homeless guy!")
+            homeless_fight_occurred = True  # Set flag to indicate the fight occurred
+            break
+
+        print("\nHomeless Guy's Turn:")
+        enemy_turn()
+        print_status()
+        if player_health <= 0:
+            game_over()
+        time.sleep(1)  # Pause between turns
+
+# Player attack function
+def player_turn():
+    global enemy_health
+    miss_chance = 0.1  # Reduced miss chance for player
+    if random.random() < miss_chance:
+        print("You missed your attack!")
+        return 0  # No damage dealt
+
+    # Allow the player to use an item before attacking
+    use_item_choice = input("Do you want to use an item before attacking? (y/n): ").lower()
+    if use_item_choice == 'y':
+        use_item()
+
+    damage = random.randint(1, player_attack)
+    enemy_health -= damage
+    print(f"You hit the enemy for {damage} damage!")
+
+# Enemy attack function
+def enemy_turn():
+    global player_health
+    miss_chance = 0.1  # Reduced miss chance for enemy
+    if random.random() < miss_chance:
+        print("The enemy missed their attack!")
+        return 0  # No damage dealt
+    damage = random.randint(1, enemy_attack)
+    player_health -= damage
+    print(f"The enemy hits you for {damage} damage!")
+
+# Print the status of the fight
+def print_status():
+    print(f"Your Health: {player_health}")
+    print(f"Enemy's Health: {enemy_health}")
+
+# Betting function at Betfred
+def place_bet(money):
+    print("Welcome to Betfred! You can bet on a match.")
+    print("To bet on Man United, press 1, to bet on Liverpool, press 2, to bet on Arsenal, press 3, to bet on Chelsea, press 4, to bet on Forest, press 5, to bet on Derby, press c to cancel.")
+    
+    match_choice = input("Choose your match: ")
+    if match_choice == 'c':
+        print("You chose not to bet.")
+        return money
+    
+    try:
+        match_choice = int(match_choice)
+        if match_choice < 1 or match_choice > 5:
+            print("Invalid match choice.")
+            return money
+    except ValueError:
+        print("Invalid input. Please enter a number or 'c' to cancel.")
+        return money
+    
+    bet_amount = int(input("How much would you like to bet? (Enter 0 to cancel): "))
+    if bet_amount > money:
+        print("You don't have enough money to place that bet.")
+        return money
+    elif bet_amount == 0:
+        print("You chose not to bet.")
+        return money
+    else:
+        result = random.choice(["win", "lose"])
+        if result == "win":
+            print("You won the bet!")
+            return money + bet_amount
+        else:
+            print("You lost the bet.")
+            return money - bet_amount
+
+# Shopping function at Boots
+def buy_from_boots(money):
+    print("Welcome to Boots! You can buy supplies like paracetamol for £2.")
+    buy_item = input("Would you like to buy paracetamol? (y/n): ").lower()
+    if buy_item == "y":
+        if money >= 2:
+            money -= 2
+            item.append("paracetamol")
+            print("You bought paracetamol.")
+        else:
+            print("You don't have enough money to buy paracetamol.")
+    return money
+
+# Main game loop
+while True:
+    # Special interaction at the police station
+    if player_loc == "policestation":
+        if "Doughnuts" in item:
+            item.remove("Doughnuts")
+            item.append("ID")
+            print("The police took your doughnuts and gave you an ID.")
+
+    # Check if the player is in a dangerous location to trigger the gang fight
+    if player_loc in locations:
+        chance = locations[player_loc].get("chance", 0)
+        if chance > 0 and not gang_fight_occurred.get(player_loc, False):
+            if random.randint(1, 100) <= chance:
+                gang_fight(player_loc)
+                continue  
+
+    # Check if the player is in the homeless shelter to trigger the homeless fight
+    if player_loc == "homelessshelter" and not homeless_fight_occurred:
+        homeless_fight()  
+        continue  
+
+    # Special interaction at the wetherspoons
+    if player_loc == "wetherspoonslocked":
+        if "ID" in item:
+            item.remove("ID")
+            player_loc = "wetherspoonsunlocked"  # Corrected key
+
+    # Betting interaction at Betfred
+    if player_loc == "betfred":
+        print(locations[player_loc]["description"])
+        player_money = place_bet(player_money)  # Call the betting function
+
+    # Shopping interaction at Boots
+    if player_loc == "boots":
+        print(locations[player_loc]["description"])
+        player_money = buy_from_boots(player_money)  # Call the Boots shopping function
+
+    # Item collection logic
+    try:
+        if "item" in locations[player_loc]:
+            print(f"You see a {locations[player_loc]['item']}")
+            action = input("c = collect, o = no: ").lower()
+            if action == "c":
+                item.append(locations[player_loc]["item"])
+                print(f"You have picked up {locations[player_loc]['item']}")
+    except KeyError:
+        pass
+
+    print(locations[player_loc]["description"]) 
+    print("You are carrying:", item)
+    print("Your Health:", player_health)
+    print("You Have:", player_money, "pounds")
+    print("Exits are:", locations[player_loc]["exits"])
+
+    # Movement logic
+    new_loc = input("Where would you like to move to? ").lower()
+    if new_loc in locations[player_loc]["exits"]:
+        player_loc = new_loc
+    else:
+        print("Invalid location. Please choose a valid exit.")
+
+    # Trigger the gang fight automatically when entering the lidlcarpark
+    if player_loc == "lidlcarpark" and not gang_fight_occurred.get("lidlcarpark", False):
+        gang_fight("lidlcarpark")
+
+    if player_health <= 0:
+        game_over()
